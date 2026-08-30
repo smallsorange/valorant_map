@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>无畏契约 · 团队阵容协作工具</title>
+  <meta name="description" content="面向无畏契约社群的自定义阵容分享协作工具：地图点位、全英雄图鉴、英雄池、职业选手推荐、多人实时协作与版本控制。" />
+  <!-- 预连接图片/脚本 CDN，缩短首图握手时间(性能优化) -->
+  <link rel="preconnect" href="https://media.valorant-api.com" crossorigin />
+  <link rel="dns-prefetch" href="https://media.valorant-api.com" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- 顶部导航 -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">VCT</div>
+      <div>
+        <h1>无畏契约 · 团队阵容协作</h1>
+        <div class="sub">VCT 强势阵容参考 × 团队英雄池智能分配</div>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <span id="modeBadge" class="mode-badge">加载中…</span>
+    <div class="user-box">
+      <span style="font-size:13px;color:var(--text-2)">我是</span>
+      <input id="nickInput" type="text" placeholder="你的昵称" maxlength="16" />
+    </div>
+    <button class="btn ghost small" id="settingsBtn" title="AI 密钥等设置">⚙️ 设置</button>
+  </header>
+
+  <!-- 标签页 -->
+  <nav class="tabs" id="tabs">
+    <div class="tab active" data-view="maps">🗺️ 地图点位</div>
+    <div class="tab" data-view="agents">🎭 英雄图鉴</div>
+    <div class="tab" data-view="pool">👥 英雄池</div>
+    <div class="tab" data-view="comp">⚔️ 阵容生成</div>
+    <div class="tab" data-view="logs">📜 编辑日志</div>
+  </nav>
+
+  <!-- 地图页 -->
+  <section class="view active" id="view-maps">
+    <div id="mapsIndex">
+      <h2 class="section-title">排位地图池</h2>
+      <p class="section-desc">当前赛季 7 张排位地图。点击查看全景图、小地图与职业比赛常用道具投掷点位。</p>
+      <div class="pool-bar">
+        <span class="pool-ver" id="poolVer"></span>
+        <button class="btn ghost small" id="syncBtn">🔄 从官方 API 同步</button>
+        <span class="sync-status" id="syncStatus"></span>
+      </div>
+      <div class="map-grid" id="mapGrid"></div>
+    </div>
+    <div id="mapDetail" style="display:none"></div>
+  </section>
+
+  <!-- 英雄图鉴 -->
+  <section class="view" id="view-agents">
+    <h2 class="section-title">全英雄图鉴</h2>
+    <p class="section-desc">当前版本全部 29 名英雄，按四大位置分类。点击任意英雄查看擅长该英雄的知名 VCT 职业选手。</p>
+    <div id="agentCodex"></div>
+  </section>
+
+  <!-- 英雄池 -->
+  <section class="view" id="view-pool">
+    <h2 class="section-title">团队英雄池</h2>
+    <p class="section-desc">每位成员填写擅长位置与擅长英雄，作为智能阵容分配的依据。最多支持 5 人协作填报。</p>
+    <div class="pool-layout">
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3 style="margin:0;font-size:16px">成员列表</h3>
+          <button class="btn primary small" id="addMemberBtn">+ 添加成员</button>
+        </div>
+        <div class="member-list" id="memberList"></div>
+      </div>
+      <div class="card editor" id="memberEditor">
+        <div class="empty">选择左侧成员进行编辑，或点击「添加成员」新建。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 阵容生成 -->
+  <section class="view" id="view-comp">
+    <h2 class="section-title">智能阵容生成</h2>
+    <p class="section-desc">选择地图，系统以 VCT 经典强势阵容为基准，结合团队英雄池生成适配方案。可拖拽成员卡片手动微调后保存。</p>
+    <div class="comp-toolbar">
+      <select id="compMapSelect"></select>
+      <button class="btn primary" id="genCompBtn">⚙️ 生成阵容</button>
+      <button class="btn ghost" id="loadCompBtn">📂 读取已保存</button>
+      <span id="compTemplateName" style="color:var(--text-2);font-size:13px"></span>
+    </div>
+    <div class="comp-result" id="compResult"></div>
+    <div class="comp-notes" id="compNotes"></div>
+    <div class="comp-actions" id="compActions" style="display:none">
+      <button class="btn primary" id="saveCompBtn">💾 保存到协作方案</button>
+      <button class="btn ghost" id="viewVersionsBtn">🕘 历史版本</button>
+      <button class="btn ghost" id="aiAnalyzeBtn">🤖 AI 分析阵容</button>
+      <button class="btn ghost" id="aiPracticeBtn">🎯 练习建议</button>
+    </div>
+  </section>
+
+  <!-- 编辑日志 -->
+  <section class="view" id="view-logs">
+    <h2 class="section-title">编辑日志</h2>
+    <p class="section-desc">完整记录每一次协作编辑：修改人、时间、修改类型、修改内容对比。日志只增不删，支持查询追溯。</p>
+    <div class="log-toolbar">
+      <input id="logSearch" class="log-search" type="text" placeholder="🔍 按修改人 / 内容 搜索" />
+      <select id="logTypeFilter">
+        <option value="">全部类型</option>
+        <option value="add">新增</option>
+        <option value="edit">编辑</option>
+        <option value="delete">删除</option>
+      </select>
+      <button class="btn ghost small" id="logRefreshBtn">刷新</button>
+      <span class="log-count" id="logCount"></span>
+    </div>
+    <div class="card" style="padding:8px">
+      <div class="log-list" id="logList"><div class="empty">暂无日志。</div></div>
+    </div>
+  </section>
+
+  <!-- 通用弹窗 -->
+  <div class="modal-mask" id="modalMask">
+    <div class="modal" id="modalBox"></div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <!-- Supabase JS (v2, 从 CDN 加载；未配置 key 时不影响本地模式) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- 数据层 -->
+  <script src="js/config.js"></script>
+  <script src="js/data/agents.js"></script>
+  <script src="js/data/maps.js"></script>
+  <script src="js/data/pros.js"></script>
+  <script src="js/data/comps.js"></script>
+  <!-- 逻辑层 -->
+  <script src="js/store.js"></script>
+  <script src="js/sync.js"></script>
+  <script src="js/generator.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
